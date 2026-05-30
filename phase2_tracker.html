@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Phase 2 Training</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2e2e2e;
+    --text: #f0ede8;
+    --text-muted: #666;
+    --text-dim: #999;
+    --accent-ride: #4a9eff;
+    --accent-strength: #a855f7;
+    --accent-recovery: #22c55e;
+    --accent-rest: #444;
+    --accent-yoga: #f97316;
+    --accent-concert: #ec4899;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --header-h: 56px;
+    --nav-h: 64px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    height: var(--header-h);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .app-header .title {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .app-header .date-display {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    height: var(--nav-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+    padding-bottom: 4px;
+  }
+  .nav-btn.active { color: var(--text); }
+  .nav-btn svg { width: 20px; height: 20px; }
+  .nav-indicator {
+    position: absolute;
+    top: 0;
+    height: 2px;
+    background: var(--text);
+    transition: left 0.2s ease, width 0.2s ease;
+  }
+
+  /* ── TABS ── */
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  /* ── SECTION HEADERS ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 20px 16px 8px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0 12px 10px;
+    padding: 14px 16px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  /* ── TODAY TAB ── */
+  .today-hero {
+    margin: 12px;
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .today-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    background: currentColor;
+  }
+  .today-hero .session-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+  .today-hero .session-name {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .today-hero .session-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .meta-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 4px 10px;
+  }
+  .today-hero .session-notes {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.75;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 12px;
+  }
+
+  /* session type colors */
+  .type-ride { color: var(--accent-ride); }
+  .type-strength { color: var(--accent-strength); }
+  .type-recovery { color: var(--accent-recovery); }
+  .type-rest { color: var(--accent-rest); }
+  .type-yoga { color: var(--accent-yoga); }
+  .type-concert { color: var(--accent-concert); }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+  input[type="number"], input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--text-dim);
+  }
+  select option { background: var(--surface2); }
+  textarea { resize: none; height: 72px; line-height: 1.5; }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .input-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-primary { background: var(--text); color: var(--bg); }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-sm {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* ── STRENGTH EXERCISE CARD ── */
+  .exercise-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0 12px 10px;
+    overflow: hidden;
+  }
+  .exercise-card-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .exercise-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .exercise-prescription {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .exercise-card-body { padding: 14px 16px; }
+
+  .set-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .set-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .set-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 36px;
+    flex-shrink: 0;
+  }
+  .set-inputs { display: flex; gap: 8px; flex: 1; }
+  .set-inputs input {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 15px;
+    text-align: center;
+  }
+  .set-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 3px;
+  }
+  .set-field { display: flex; flex-direction: column; flex: 1; }
+  .set-logged {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+  .set-logged-values {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    flex: 1;
+  }
+  .set-logged-values span { color: var(--text-muted); font-size: 11px; }
+  .check-icon { color: var(--accent-recovery); flex-shrink: 0; }
+
+  /* ── SCHEDULE TAB ── */
+  .week-block {
+    margin: 0 12px 16px;
+  }
+  .week-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .week-header.current-week { color: var(--text); }
+  .schedule-day {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+  }
+  .schedule-day:active { background: var(--surface2); }
+  .schedule-day.today {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .schedule-day.past { opacity: 0.6; }
+  .schedule-day .day-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .schedule-day.today .day-date { color: var(--text); }
+  .schedule-day .day-label {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .schedule-day .day-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+  }
+  .logged-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-recovery);
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── STATS TAB ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 12px;
+    margin-bottom: 12px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .stat-box .stat-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-box .stat-lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .history-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .history-info { flex: 1; min-width: 0; }
+  .history-title { font-size: 14px; font-weight: 500; }
+  .history-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .history-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ── RECOVERY TAB ── */
+  .morpheus-display {
+    text-align: center;
+    padding: 24px 16px 16px;
+  }
+  .morpheus-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 72px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 8px;
+    transition: color 0.3s;
+  }
+  .morpheus-tier {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .morpheus-guidance {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* ── ELBOW RATING ── */
+  .elbow-rating {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .elbow-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .elbow-btn.selected {
+    border-color: var(--text-dim);
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.25s ease;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    max-height: 85dvh;
+    overflow-y: auto;
+    padding: 20px 16px;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .modal-close {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    margin-top: -2px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* scroll anchor */
+  #today-anchor {}
+
+  /* phase badge */
+  .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: 12px 12px 0;
+  }
+  .phase-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-ride);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 10px 0 0;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent-strength);
+    transition: width 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <span class="title">Phase 2</span>
+  <span class="date-display" id="headerDate"></span>
+</header>
+
+<!-- CONTENT -->
+<main class="content" id="mainContent">
+
+  <!-- TODAY TAB -->
+  <div class="tab active" id="tab-today">
+    <div class="phase-badge"><span class="phase-dot"></span>Threshold Development · Jun 2 – Jul 16</div>
+    <div id="todayContent"></div>
+  </div>
+
+  <!-- SCHEDULE TAB -->
+  <div class="tab" id="tab-schedule">
+    <div class="section-label">Phase 2 Schedule</div>
+    <div id="scheduleContent"></div>
+  </div>
+
+  <!-- STRENGTH TAB -->
+  <div class="tab" id="tab-strength">
+    <div id="strengthContent"></div>
+  </div>
+
+  <!-- RECOVERY TAB -->
+  <div class="tab" id="tab-recovery">
+    <div id="recoveryContent"></div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div class="tab" id="tab-stats">
+    <div id="statsContent"></div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-indicator" id="navIndicator"></div>
+  <button class="nav-btn active" data-tab="today" onclick="switchTab('today')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Today
+  </button>
+  <button class="nav-btn" data-tab="schedule" onclick="switchTab('schedule')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Schedule
+  </button>
+  <button class="nav-btn" data-tab="strength" onclick="switchTab('strength')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M6 12h12M2 8h4M18 8h4M2 16h4M18 16h4"/></svg>
+    Strength
+  </button>
+  <button class="nav-btn" data-tab="recovery" onclick="switchTab('recovery')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    Recovery
+  </button>
+  <button class="nav-btn" data-tab="stats" onclick="switchTab('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Stats
+  </button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ── CONFIG ──
+const API_URL = 'https://script.google.com/macros/s/AKfycbx4qdY5TYP9rx_sMp9Z1rANgGyN5znc9kl_4GY80yiD7Dwu-zxVGwEjh6gx6t-tQWThsw/exec';
+const TZ = 'America/Los_Angeles';
+
+// ── DATE UTILS ──
+function getToday() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+}
+function formatDisplay(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function formatShort(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function addDays(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dt.toLocaleDateString('en-CA', { timeZone: TZ });
+}
+
+// ── SCHEDULE ──
+// Session types: ride-a, ride-b, ride-c, strength-a, strength-b, yoga, rest, bridge-ride, concert
+const SCHEDULE = buildSchedule();
+
+function buildSchedule() {
+  const s = {};
+
+  // Bridge week: May 31 – Jun 7 (concert run)
+  const bridgeWeek = [
+    { date: '2026-05-31', type: 'yoga', label: 'Yoga / Mobility', notes: 'Concert day. Morning yoga. 30–45 min.' },
+    { date: '2026-06-01', type: 'bridge-ride', label: 'Short Z2 Ride', notes: 'Concert day. 35–45 min if Morpheus ≥70. Lower Z2 only, HR 125–133.' },
+    { date: '2026-06-02', type: 'yoga', label: 'Yoga / Mobility', notes: 'Concert day. Morning yoga. 30–45 min.' },
+    { date: '2026-06-03', type: 'bridge-ride', label: 'Short Z2 Ride', notes: 'Free day — best opportunity of the week. 35–45 min, HR 125–135.' },
+    { date: '2026-06-04', type: 'yoga', label: 'Yoga / Mobility', notes: 'Free day. Active recovery focus. 30–45 min.' },
+    { date: '2026-06-05', type: 'bridge-ride', label: 'Short Z2 Ride', notes: 'Concert day. 35–45 min if Morpheus ≥70. Lower Z2 only.' },
+    { date: '2026-06-06', type: 'yoga', label: 'Yoga or Rest', notes: 'Concert day. Yoga if energy allows, otherwise full rest.' },
+    { date: '2026-06-07', type: 'rest', label: 'Rest', notes: 'Final concert day. Full rest.' },
+  ];
+  bridgeWeek.forEach(d => s[d.date] = d);
+
+  // Phase 2 proper: Jun 8 – Jul 16 (6 weeks)
+  // Week pattern: Mon=Str-A, Tue=Ride-A, Wed=Yoga, Thu=Ride-B, Fri=Str-B, Sat=Ride-C, Sun=Rest
+  const phase2Start = '2026-06-08'; // Monday
+  const weekPattern = [
+    { dow: 0, type: 'strength-a', label: 'Session A — Upper Body', notes: 'Higher volume. Rows, pull-downs, press, lateral delt, core interleaved. 55–65 min.' },
+    { dow: 1, type: 'ride-a', label: 'Ride A — Threshold Intervals', notes: '2×12 min or 3×8 min Z3 (140–155 bpm) with Z2 recovery. Warm-up/cool-down included. 60–70 min.' },
+    { dow: 2, type: 'yoga', label: 'Yoga / Mobility', notes: 'Active recovery. Forearm and elbow care mandatory. 30–45 min.' },
+    { dow: 3, type: 'ride-b', label: 'Ride B — Z2 + Tempo', notes: '40 min Z2, then 15–20 min upper Z2/Z3 tempo (~140–150 bpm). 55–65 min total.' },
+    { dow: 4, type: 'strength-b', label: 'Session B — Posterior Chain', notes: 'Balanced session. Posterior chain, moderate legs. Core interleaved. 45–55 min.' },
+    { dow: 5, type: 'ride-c', label: 'Ride C — Long Ride', notes: 'Pure Z2 base, last 20–25 min rising to Z3 (HR ceiling ~155). 90–105 min total.' },
+    { dow: 6, type: 'rest', label: 'Rest', notes: 'True recovery. Optional easy walk 20–30 min. No structured training.' },
+  ];
+
+  // Phase 2 end: Jul 16 (Thursday)
+  const phase2End = '2026-07-16';
+  let cur = phase2Start;
+  while (cur <= phase2End) {
+    const [y, m, d] = cur.split('-').map(Number);
+    const dow = new Date(y, m - 1, d).getDay(); // 0=Sun
+    // Convert: Mon=0 in our pattern
+    const patternDow = (dow + 6) % 7;
+    const p = weekPattern.find(x => x.dow === patternDow);
+    if (p) {
+      s[cur] = { date: cur, type: p.type, label: p.label, notes: p.notes };
+    }
+    cur = addDays(cur, 1);
+  }
+
+  return s;
+}
+
+// ── LOCAL STORAGE ──
+const LS = {
+  key: 'p2training',
+  get() { try { return JSON.parse(localStorage.getItem(this.key) || '{}'); } catch { return {}; } },
+  set(data) { localStorage.setItem(this.key, JSON.stringify(data)); },
+  getLog(tab) {
+    const d = this.get();
+    return d[tab] || [];
+  },
+  saveEntry(tab, entry) {
+    const d = this.get();
+    if (!d[tab]) d[tab] = [];
+    const arr = d[tab];
+    if (tab === 'strength') {
+      const idx = arr.findIndex(r => r.date === entry.date && r.exercise === entry.exercise && r.set === entry.set);
+      if (idx >= 0) arr[idx] = entry; else arr.push(entry);
+    } else if (tab === 'rides') {
+      const idx = arr.findIndex(r => r.date === entry.date && r.rideType === entry.rideType);
+      if (idx >= 0) arr[idx] = entry; else arr.push(entry);
+    } else {
+      const idx = arr.findIndex(r => r.date === entry.date);
+      if (idx >= 0) arr[idx] = entry; else arr.push(entry);
+    }
+    this.set(d);
+  },
+  getRide(date) {
+    const rides = this.getLog('rides');
+    return rides.filter(r => r.date === date);
+  },
+  getRecovery(date) {
+    const rec = this.getLog('recovery');
+    return rec.find(r => r.date === date) || null;
+  },
+  getStrengthSession(date) {
+    const str = this.getLog('strength');
+    return str.filter(r => r.date === date);
+  }
+};
+
+// ── SHEET SYNC ──
+async function syncToSheet(tab, entry) {
+  try {
+    const url = `${API_URL}?action=save&tab=${encodeURIComponent(capitalize(tab))}&date=${entry.date}&data=${encodeURIComponent(JSON.stringify(entry))}`;
+    await fetch(url);
+  } catch(e) { console.warn('Sheet sync failed:', e); }
+}
+async function loadFromSheet() {
+  try {
+    const tabs = ['Rides', 'Strength', 'Recovery'];
+    for (const tab of tabs) {
+      const url = `${API_URL}?action=load&tab=${tab}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.status === 'ok' && json.data) {
+        const d = LS.get();
+        const key = tab.toLowerCase();
+        // Merge sheet data into localStorage
+        json.data.forEach(row => {
+          if (!row.Date) return;
+          const entry = sheetRowToEntry(tab, row);
+          if (!d[key]) d[key] = [];
+          if (tab === 'Strength') {
+            const idx = d[key].findIndex(r => r.date === entry.date && r.exercise === entry.exercise && r.set === entry.set);
+            if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
+          } else if (tab === 'Rides') {
+            const idx = d[key].findIndex(r => r.date === entry.date && r.rideType === entry.rideType);
+            if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
+          } else {
+            const idx = d[key].findIndex(r => r.date === entry.date);
+            if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
+          }
+        });
+        LS.set(d);
+      }
+    }
+    renderCurrentTab();
+  } catch(e) { console.warn('Sheet load failed:', e); }
+}
+function sheetRowToEntry(tab, row) {
+  if (tab === 'Rides') return { date: row.Date, rideType: row.RideType, duration: row.Duration, ahr: row.AHR, mhr: row.MHR, rpe: row.RPE, morpheusZone: row.MorpheusZone, morpheusScore: row.MorpheusScore, notes: row.Notes };
+  if (tab === 'Strength') return { date: row.Date, sessionType: row.SessionType, exercise: row.Exercise, set: Number(row.Set), reps: row.Reps, weight: row.Weight, notes: row.Notes };
+  if (tab === 'Recovery') return { date: row.Date, morpheusScore: row.MorpheusScore, elbowRating: row.ElbowRating, sleepQuality: row.SleepQuality, notes: row.Notes };
+  return row;
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── STRENGTH EXERCISES ──
+const SESSION_A = [
+  { name: 'Band External Rotations', sets: 2, reps: '15', weight: 'band', note: 'Warmup — mandatory' },
+  { name: 'Smith Machine Incline Press', sets: 3, reps: '8', weight: '130', note: 'Phase 2 start weight' },
+  { name: 'Dead Bug', sets: 2, reps: '8 each side', weight: 'bw', note: 'Core — between press sets' },
+  { name: 'Single Arm DB Row', sets: 3, reps: '10', weight: '40', note: 'Neutral wrist' },
+  { name: 'Plank Hold', sets: 2, reps: '20–30 sec', weight: 'bw', note: 'Core — between row sets' },
+  { name: 'Neutral Grip Lat Pulldown', sets: 3, reps: '10', weight: '70', note: 'Loose grip' },
+  { name: 'Band Pallof Press', sets: 3, reps: '8 each side', weight: 'band', note: 'Core — between pulldown sets' },
+  { name: 'DB Shoulder Press', sets: 3, reps: '8', weight: '30', note: 'Each hand' },
+  { name: 'Cable Tricep Pushdown', sets: 2, reps: '8', weight: '15', note: 'Rope attachment. Monitor elbow 24–48 hrs.' },
+  { name: 'DB Bicep Curl', sets: 2, reps: '8', weight: '15', note: 'Monitor elbow 24–48 hrs.' },
+  { name: 'Cable Lateral Raise', sets: 2, reps: '8–10', weight: '10', note: 'One arm at a time. Conservative reintroduction.' },
+];
+
+const SESSION_B = [
+  { name: 'Banded Overhead Squat', sets: 2, reps: '12', weight: 'band', note: 'Warmup' },
+  { name: 'Banded Lateral Walks', sets: 2, reps: '15–20 steps', weight: 'band', note: 'Each direction' },
+  { name: 'Band Pallof Press', sets: 3, reps: '8 each side', weight: 'band', note: 'Core primer — before RDL sets' },
+  { name: 'Barbell RDL', sets: 3, reps: '8–10', weight: '135', note: 'After each Pallof Press set' },
+  { name: 'Side Plank', sets: 3, reps: '20–30 sec', weight: 'bw', note: 'Core primer — before Hip Thrust + Squat' },
+  { name: 'Barbell Hip Thrust', sets: 3, reps: '8–10', weight: '95', note: 'After each Side Plank' },
+  { name: 'Barbell Squat', sets: 3, reps: '8–10', weight: '140', note: 'Paired with Hip Thrust' },
+  { name: 'Hollow Body Hold', sets: 3, reps: '20–30 sec', weight: 'bw', note: 'Core primer — before Reverse Lunge' },
+  { name: 'Alternating DB Reverse Lunge', sets: 3, reps: '10', weight: '25', note: '25 lbs each hand' },
+  { name: 'Neutral Grip Lat Pulldown', sets: 3, reps: '10', weight: '75', note: 'Finisher — pull-up substitute' },
+];
+
+// ── STATE ──
+let currentTab = 'today';
+let strengthState = { date: null, sessionType: null, exerciseIdx: 0, setIdx: 0, loggedSets: {} };
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('headerDate').textContent = formatDisplay(getToday());
+  renderToday();
+  updateNavIndicator('today');
+  loadFromSheet();
+});
+
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  currentTab = tab;
+  updateNavIndicator(tab);
+
+  if (tab === 'today') renderToday();
+  else if (tab === 'schedule') { renderSchedule(); scrollToToday(); }
+  else if (tab === 'strength') renderStrength();
+  else if (tab === 'recovery') renderRecovery();
+  else if (tab === 'stats') renderStats();
+}
+
+function renderCurrentTab() {
+  if (currentTab === 'today') renderToday();
+  else if (currentTab === 'schedule') renderSchedule();
+  else if (currentTab === 'strength') renderStrength();
+  else if (currentTab === 'recovery') renderRecovery();
+  else if (currentTab === 'stats') renderStats();
+}
+
+function updateNavIndicator(tab) {
+  const btn = document.querySelector(`[data-tab="${tab}"]`);
+  const nav = document.querySelector('.bottom-nav');
+  const ind = document.getElementById('navIndicator');
+  const navRect = nav.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+  ind.style.left = (btnRect.left - navRect.left) + 'px';
+  ind.style.width = btnRect.width + 'px';
+}
+
+// ── TODAY TAB ──
+function renderToday(date) {
+  const d = date || getToday();
+  const session = SCHEDULE[d];
+  const el = document.getElementById('todayContent');
+  const isToday = d === getToday();
+  const isPast = d < getToday();
+
+  if (!session) {
+    el.innerHTML = `<div class="empty-state">No session scheduled for this date.</div>`;
+    return;
+  }
+
+  const typeClass = getTypeClass(session.type);
+  const existingRide = LS.getRide(d);
+  const existingRecovery = LS.getRecovery(d);
+  const isLogged = isSessionLogged(session.type, d);
+
+  let html = `
+    <div class="today-hero ${typeClass}" style="margin-top:12px;">
+      <div class="session-type">${getSessionTypeLabel(session.type)}</div>
+      <div class="session-name">${session.label}</div>
+      <div class="session-meta">
+        ${getSessionMeta(session.type)}
+      </div>
+      <div class="session-notes">${session.notes}</div>
+    </div>
+  `;
+
+  if (!isToday && isPast) {
+    html += `<div style="padding: 8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:8px;">Viewing: ${formatDisplay(d)}</div></div>`;
+  }
+
+  // Show log form or logged summary
+  if (isRideType(session.type)) {
+    const logged = existingRide.find(r => r.rideType === getRideKey(session.type));
+    if (logged) {
+      html += renderLoggedRide(logged, d, session.type);
+    } else {
+      html += renderRideForm(d, session.type);
+    }
+  } else if (session.type === 'strength-a' || session.type === 'strength-b') {
+    html += renderStrengthPrompt(d, session.type);
+  } else {
+    html += `<div class="card"><div style="color:var(--text-muted);font-size:14px;text-align:center;padding:8px 0;">No logging required for this session type.</div></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function isRideType(t) { return ['ride-a','ride-b','ride-c','bridge-ride'].includes(t); }
+function getRideKey(t) { return t; }
+
+function getTypeClass(t) {
+  if (t.includes('ride') || t === 'bridge-ride') return 'type-ride';
+  if (t.includes('strength')) return 'type-strength';
+  if (t === 'yoga') return 'type-yoga';
+  if (t === 'rest') return 'type-rest';
+  if (t === 'concert') return 'type-concert';
+  return 'type-recovery';
+}
+
+function getSessionTypeLabel(t) {
+  if (t === 'ride-a') return 'Ride A';
+  if (t === 'ride-b') return 'Ride B';
+  if (t === 'ride-c') return 'Ride C';
+  if (t === 'bridge-ride') return 'Bridge Ride';
+  if (t === 'strength-a') return 'Session A';
+  if (t === 'strength-b') return 'Session B';
+  if (t === 'yoga') return 'Yoga / Mobility';
+  if (t === 'rest') return 'Rest Day';
+  return t;
+}
+
+function getSessionMeta(t) {
+  if (t === 'ride-a') return '<span class="meta-pill">60–70 min</span><span class="meta-pill">Z3 Intervals</span><span class="meta-pill">140–155 bpm</span>';
+  if (t === 'ride-b') return '<span class="meta-pill">55–65 min</span><span class="meta-pill">Z2 + Tempo</span><span class="meta-pill">140–150 bpm</span>';
+  if (t === 'ride-c') return '<span class="meta-pill">90–105 min</span><span class="meta-pill">Z2 Long</span><span class="meta-pill">~155 bpm ceiling</span>';
+  if (t === 'bridge-ride') return '<span class="meta-pill">35–45 min</span><span class="meta-pill">Z2 Easy</span><span class="meta-pill">125–135 bpm</span>';
+  if (t === 'strength-a') return '<span class="meta-pill">55–65 min</span><span class="meta-pill">Upper Body</span><span class="meta-pill">Core Interleaved</span>';
+  if (t === 'strength-b') return '<span class="meta-pill">45–55 min</span><span class="meta-pill">Posterior Chain</span><span class="meta-pill">Core Interleaved</span>';
+  if (t === 'yoga') return '<span class="meta-pill">30–45 min</span>';
+  return '';
+}
+
+function isSessionLogged(type, date) {
+  if (isRideType(type)) return LS.getRide(date).length > 0;
+  if (type === 'strength-a' || type === 'strength-b') return LS.getStrengthSession(date).length > 0;
+  return false;
+}
+
+function renderRideForm(date, type) {
+  return `
+    <div class="section-label">Log This Session</div>
+    <div class="card">
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label">Duration (min)</label>
+          <input type="number" id="f_duration" placeholder="45">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Morpheus Score %</label>
+          <input type="number" id="f_morpheus" placeholder="85">
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label">Avg HR</label>
+          <input type="number" id="f_ahr" placeholder="128">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max HR</label>
+          <input type="number" id="f_mhr" placeholder="145">
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label">RPE (1–10)</label>
+          <input type="number" id="f_rpe" placeholder="5" min="1" max="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Morpheus Zone</label>
+          <input type="text" id="f_zone" placeholder="Z2">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="f_notes" placeholder="How did it feel?"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveRide('${date}','${type}')">Save Session</button>
+    </div>
+  `;
+}
+
+function renderLoggedRide(logged, date, type) {
+  return `
+    <div class="section-label">Logged</div>
+    <div class="card">
+      <div class="input-row-3" style="margin-bottom:12px;">
+        <div style="text-align:center;">
+          <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;">${logged.duration}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">min</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;">${logged.ahr}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">avg HR</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;">${logged.mhr}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">max HR</div>
+        </div>
+      </div>
+      <div class="input-row" style="margin-bottom:${logged.notes ? '12px' : '0'};">
+        <div style="text-align:center;">
+          <div style="font-family:'DM Mono',monospace;font-size:18px;">${logged.rpe || '–'}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">RPE</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'DM Mono',monospace;font-size:18px;">${logged.morpheusScore || '–'}%</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Morpheus</div>
+        </div>
+      </div>
+      ${logged.notes ? `<div style="font-size:13px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px;line-height:1.5;">${logged.notes}</div>` : ''}
+      <div style="margin-top:14px;">
+        <button class="btn btn-secondary" onclick="editRide('${date}','${type}')">Edit</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderStrengthPrompt(date, type) {
+  const sessionData = LS.getStrengthSession(date);
+  const exercises = type === 'strength-a' ? SESSION_A : SESSION_B;
+  const loggedCount = new Set(sessionData.map(r => r.exercise)).size;
+  const pct = Math.round((loggedCount / exercises.length) * 100);
+
+  return `
+    <div class="section-label">${loggedCount > 0 ? 'Session In Progress' : 'Start Session'}</div>
+    <div class="card">
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:14px;">${loggedCount} of ${exercises.length} exercises logged</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted);">${pct}%</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <button class="btn btn-primary" onclick="switchTab('strength');initStrengthSession('${date}','${type}')">
+        ${loggedCount > 0 ? 'Continue Session' : 'Begin Session'}
+      </button>
+    </div>
+  `;
+}
+
+function saveRide(date, type) {
+  const duration = document.getElementById('f_duration')?.value;
+  const ahr = document.getElementById('f_ahr')?.value;
+  const mhr = document.getElementById('f_mhr')?.value;
+  const rpe = document.getElementById('f_rpe')?.value;
+  const zone = document.getElementById('f_zone')?.value;
+  const morpheus = document.getElementById('f_morpheus')?.value;
+  const notes = document.getElementById('f_notes')?.value;
+
+  if (!duration || !ahr || !mhr) { showToast('Please fill in duration, AHR, and MHR'); return; }
+
+  const entry = { date, rideType: type, duration: Number(duration), ahr: Number(ahr), mhr: Number(mhr), rpe: Number(rpe) || '', morpheusZone: zone || '', morpheusScore: Number(morpheus) || '', notes: notes || '' };
+  LS.saveEntry('rides', entry);
+  syncToSheet('rides', entry);
+  showToast('Session saved ✓');
+  renderToday(date);
+}
+
+function editRide(date, type) {
+  const existing = LS.getRide(date).find(r => r.rideType === type);
+  renderToday(date);
+  setTimeout(() => {
+    if (existing) {
+      document.getElementById('f_duration').value = existing.duration || '';
+      document.getElementById('f_ahr').value = existing.ahr || '';
+      document.getElementById('f_mhr').value = existing.mhr || '';
+      document.getElementById('f_rpe').value = existing.rpe || '';
+      document.getElementById('f_zone').value = existing.morpheusZone || '';
+      document.getElementById('f_morpheus').value = existing.morpheusScore || '';
+      document.getElementById('f_notes').value = existing.notes || '';
+    }
+  }, 50);
+}
+
+// ── STRENGTH TAB ──
+function renderStrength() {
+  const el = document.getElementById('strengthContent');
+  const today = getToday();
+  const todaySession = SCHEDULE[today];
+  const isStrengthDay = todaySession && (todaySession.type === 'strength-a' || todaySession.type === 'strength-b');
+
+  if (strengthState.date && strengthState.sessionType) {
+    renderStrengthSession();
+    return;
+  }
+
+  let html = '';
+  if (isStrengthDay) {
+    html += `<div class="section-label">Today's Session</div>`;
+    html += `<div class="card">
+      <div class="card-title">${todaySession.label}</div>
+      <button class="btn btn-primary" onclick="initStrengthSession('${today}','${todaySession.type}')">Begin Today's Session</button>
+    </div>`;
+  }
+
+  html += `<div class="section-label">Log Past Session</div>
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="text" id="str_date" placeholder="YYYY-MM-DD" value="">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Session Type</label>
+      <select id="str_type">
+        <option value="strength-a">Session A — Upper Body</option>
+        <option value="strength-b">Session B — Posterior Chain</option>
+      </select>
+    </div>
+    <button class="btn btn-secondary" onclick="startPastStrength()">Open Session</button>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function getPreviousSessionData(currentDate, sessionType) {
+  // Find the most recent logged session of this type before currentDate
+  const allStrength = LS.getLog('strength');
+  const sametype = allStrength.filter(r => r.sessionType === sessionType && r.date < currentDate);
+  if (!sametype.length) return {};
+  // Get most recent date
+  const prevDate = sametype.reduce((max, r) => r.date > max ? r.date : max, '');
+  // Build exercise → sets map
+  const prev = {};
+  sametype.filter(r => r.date === prevDate).forEach(r => {
+    if (!prev[r.exercise]) prev[r.exercise] = [];
+    prev[r.exercise][r.set - 1] = { reps: r.reps, weight: r.weight };
+  });
+  return { date: prevDate, sets: prev };
+}
+
+function initStrengthSession(date, type) {
+  strengthState = { date, sessionType: type, exerciseIdx: 0, setIdx: 0, loggedSets: {}, prevSession: getPreviousSessionData(date, type) };
+  // Load existing logs into state
+  const existing = LS.getStrengthSession(date).filter(r => r.sessionType === type);
+  existing.forEach(r => {
+    if (!strengthState.loggedSets[r.exercise]) strengthState.loggedSets[r.exercise] = {};
+    strengthState.loggedSets[r.exercise][r.set] = { reps: r.reps, weight: r.weight };
+  });
+  renderStrengthSession();
+}
+
+function startPastStrength() {
+  const date = document.getElementById('str_date').value.trim();
+  const type = document.getElementById('str_type').value;
+  if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) { showToast('Enter date as YYYY-MM-DD'); return; }
+  initStrengthSession(date, type);
+}
+
+function renderStrengthSession() {
+  const el = document.getElementById('strengthContent');
+  const exercises = strengthState.sessionType === 'strength-a' ? SESSION_A : SESSION_B;
+  const sessionLabel = strengthState.sessionType === 'strength-a' ? 'Session A — Upper Body' : 'Session B — Posterior Chain';
+  const loggedExCount = Object.keys(strengthState.loggedSets).length;
+  const pct = Math.round((loggedExCount / exercises.length) * 100);
+
+  let html = `
+    <div style="position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid var(--border);padding:12px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">${formatDisplay(strengthState.date)}</div>
+          <div style="font-size:15px;font-weight:600;color:var(--accent-strength);">${sessionLabel}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="endStrengthSession()">Done</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="progress-bar-wrap" style="flex:1;margin:0;"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);">${loggedExCount}/${exercises.length}</span>
+      </div>
+    </div>
+  `;
+
+  exercises.forEach((ex, exIdx) => {
+    const logged = strengthState.loggedSets[ex.name] || {};
+    const allSetsLogged = Object.keys(logged).length >= ex.sets;
+    const isBodyweight = ex.weight === 'bw' || ex.weight === 'band';
+
+    // Build previous session reference string
+    const prev = strengthState.prevSession;
+    let prevHtml = '';
+    if (prev && prev.sets && prev.sets[ex.name] && prev.sets[ex.name].length) {
+      const prevSets = prev.sets[ex.name].filter(Boolean);
+      if (prevSets.length) {
+        const prevStr = prevSets.map((s, i) =>
+          s.reps + ((!isBodyweight && s.weight) ? ' @ ' + s.weight + 'lb' : '')
+        ).join(' · ');
+        prevHtml = `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent-strength);opacity:0.7;margin-top:3px;">Last: ${prevStr}</div>`;
+      }
+    }
+
+    html += `<div class="exercise-card" id="ex-card-${exIdx}">
+      <div class="exercise-card-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="exercise-name">${allSetsLogged ? '✓ ' : ''}${ex.name}</div>
+            <div class="exercise-prescription">${ex.sets} sets × ${ex.reps}${!isBodyweight ? ' @ ' + ex.weight + ' lbs' : ''} · ${ex.note}</div>
+            ${prevHtml}
+          </div>
+        </div>
+      </div>
+      <div class="exercise-card-body">`;
+
+    for (let s = 1; s <= ex.sets; s++) {
+      const setLog = logged[s];
+      if (setLog) {
+        html += `<div class="set-row">
+          <div class="set-num">Set ${s}</div>
+          <div class="set-logged">
+            <div class="set-logged-values">
+              ${setLog.reps} reps${!isBodyweight && setLog.weight ? ' @ ' + setLog.weight + ' lbs' : ''}
+            </div>
+            <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <button onclick="editSet('${ex.name}',${s},${exIdx})" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;padding:0;">edit</button>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="set-row" id="set-row-${exIdx}-${s}">
+          <div class="set-num">Set ${s}</div>
+          <div class="set-inputs">
+            <div class="set-field">
+              <input type="number" id="reps-${exIdx}-${s}" placeholder="${ex.reps.split('–')[0]}" inputmode="decimal">
+              <div class="set-unit">reps</div>
+            </div>
+            ${!isBodyweight ? `<div class="set-field">
+              <input type="number" id="wt-${exIdx}-${s}" placeholder="${ex.weight}" inputmode="decimal">
+              <div class="set-unit">lbs</div>
+            </div>` : ''}
+          </div>
+          <button onclick="logSet('${ex.name}',${s},${exIdx},${isBodyweight})" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 12px;cursor:pointer;flex-shrink:0;">Log</button>
+        </div>`;
+      }
+    }
+
+    html += `</div></div>`;
+  });
+
+  // Elbow rating at end
+  const currentElbow = strengthState.elbowRating || null;
+  html += `
+    <div class="section-label">Session Elbow Check-in</div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Rate overall elbow status for this session (0 = no issues, 5 = significant pain)</div>
+      <div class="elbow-rating">
+        ${[0,1,2,3,4,5].map(n => `<button class="elbow-btn ${currentElbow == n ? 'selected' : ''}" onclick="setElbow(${n})">${n}</button>`).join('')}
+      </div>
+    </div>
+    <div style="padding:0 12px 20px;">
+      <button class="btn btn-primary" onclick="endStrengthSession()">Finish Session</button>
+    </div>
+  `;
+
+  el.innerHTML = html;
+
+  // Scroll to first unlogged exercise
+  setTimeout(() => {
+    const exercises2 = strengthState.sessionType === 'strength-a' ? SESSION_A : SESSION_B;
+    for (let i = 0; i < exercises2.length; i++) {
+      const logged2 = strengthState.loggedSets[exercises2[i].name] || {};
+      if (Object.keys(logged2).length < exercises2[i].sets) {
+        const card = document.getElementById(`ex-card-${i}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Offset for sticky header
+          const content = document.getElementById('mainContent');
+          content.scrollTop -= 8;
+        }
+        break;
+      }
+    }
+  }, 100);
+}
+
+function logSet(exerciseName, setNum, exIdx, isBodyweight) {
+  const repsEl = document.getElementById(`reps-${exIdx}-${setNum}`);
+  const wtEl = document.getElementById(`wt-${exIdx}-${setNum}`);
+  const reps = repsEl?.value;
+  if (!reps) { showToast('Enter reps'); return; }
+  const weight = isBodyweight ? '' : (wtEl?.value || '');
+
+  if (!strengthState.loggedSets[exerciseName]) strengthState.loggedSets[exerciseName] = {};
+  strengthState.loggedSets[exerciseName][setNum] = { reps, weight };
+
+  // Save to storage
+  const exercises = strengthState.sessionType === 'strength-a' ? SESSION_A : SESSION_B;
+  const entry = {
+    date: strengthState.date,
+    sessionType: strengthState.sessionType,
+    exercise: exerciseName,
+    set: setNum,
+    reps,
+    weight,
+    notes: ''
+  };
+  LS.saveEntry('strength', entry);
+  syncToSheet('strength', entry);
+  showToast('Set logged ✓');
+  renderStrengthSession();
+
+  // Scroll to next unlogged set with offset
+  setTimeout(() => {
+    const exList = strengthState.sessionType === 'strength-a' ? SESSION_A : SESSION_B;
+    for (let i = 0; i < exList.length; i++) {
+      const lg = strengthState.loggedSets[exList[i].name] || {};
+      if (Object.keys(lg).length < exList[i].sets) {
+        const card = document.getElementById(`ex-card-${i}`);
+        if (card) {
+          const content = document.getElementById('mainContent');
+          const cardTop = card.getBoundingClientRect().top;
+          const contentTop = content.getBoundingClientRect().top;
+          const stickyH = 80; // approx sticky header height
+          content.scrollTop += cardTop - contentTop - stickyH - 8;
+        }
+        break;
+      }
+    }
+  }, 150);
+}
+
+function editSet(exerciseName, setNum, exIdx) {
+  if (strengthState.loggedSets[exerciseName]) {
+    delete strengthState.loggedSets[exerciseName][setNum];
+    if (Object.keys(strengthState.loggedSets[exerciseName]).length === 0) {
+      delete strengthState.loggedSets[exerciseName];
+    }
+  }
+  renderStrengthSession();
+}
+
+function setElbow(n) {
+  strengthState.elbowRating = n;
+  renderStrengthSession();
+}
+
+function endStrengthSession() {
+  // Save elbow rating to recovery log
+  if (strengthState.elbowRating !== null && strengthState.elbowRating !== undefined) {
+    const existing = LS.getRecovery(strengthState.date) || {};
+    const entry = { ...existing, date: strengthState.date, elbowRating: strengthState.elbowRating };
+    LS.saveEntry('recovery', entry);
+    syncToSheet('recovery', entry);
+  }
+  strengthState = { date: null, sessionType: null, exerciseIdx: 0, setIdx: 0, loggedSets: {} };
+  renderStrength();
+  showToast('Session complete ✓');
+}
+
+// ── SCHEDULE TAB ──
+function renderSchedule() {
+  const el = document.getElementById('scheduleContent');
+  const today = getToday();
+
+  // Group days into weeks
+  const allDates = Object.keys(SCHEDULE).sort();
+  const weeks = [];
+  let currentWeek = [];
+  let lastWeekNum = null;
+
+  allDates.forEach(date => {
+    const [y, m, d] = date.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const weekNum = getWeekNum(dt);
+    if (lastWeekNum !== null && weekNum !== lastWeekNum) {
+      if (currentWeek.length) weeks.push(currentWeek);
+      currentWeek = [];
+    }
+    currentWeek.push(date);
+    lastWeekNum = weekNum;
+  });
+  if (currentWeek.length) weeks.push(currentWeek);
+
+  let html = '';
+  weeks.forEach((week, wi) => {
+    const firstDate = week[0];
+    const lastDate = week[week.length - 1];
+    const isCurrent = week.includes(today);
+    const isBridge = firstDate <= '2026-06-07';
+    const weekLabel = isBridge ? 'Bridge Week · Concert Run' : `Week ${wi + (firstDate >= '2026-06-08' ? 0 : 1)} · ${formatDisplay(firstDate)} – ${formatShort(lastDate)}`;
+
+    html += `<div class="week-block" id="week-${wi}">
+      <div class="week-header ${isCurrent ? 'current-week' : ''}">${isCurrent ? '▶ ' : ''}${weekLabel}</div>`;
+
+    week.forEach(date => {
+      const session = SCHEDULE[date];
+      if (!session) return;
+      const isToday = date === today;
+      const isPast = date < today;
+      const isLogged = isSessionLogged(session.type, date);
+      const typeClass = getTypeClass(session.type);
+
+      html += `<div class="schedule-day ${isToday ? 'today' : ''} ${isPast && !isToday ? 'past' : ''}" 
+        id="sched-${date}"
+        onclick="showDayDetail('${date}')">
+        <div class="day-date">${formatShort(date).replace(/\w+ /, '')}</div>
+        <div class="day-label ${typeClass}">${session.label}</div>
+        <div class="day-tag">${getSessionTypeLabel(session.type)}</div>
+        ${isLogged ? '<div class="logged-dot"></div>' : ''}
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function getWeekNum(dt) {
+  const d = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function scrollToToday() {
+  setTimeout(() => {
+    const todayEl = document.getElementById(`sched-${getToday()}`);
+    if (todayEl) {
+      todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 80);
+}
+
+function showDayDetail(date) {
+  const session = SCHEDULE[date];
+  if (!session) return;
+  const isToday = date === getToday();
+  const isPast = date < getToday();
+
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:4px;">${formatDisplay(date)}</div>
+    <div class="modal-title ${getTypeClass(session.type)}">${session.label}</div>
+    <div style="font-size:14px;line-height:1.6;color:var(--text-muted);margin-bottom:16px;">${session.notes}</div>
+    <div class="divider"></div>
+    <button class="btn btn-secondary" onclick="goToDay('${date}')">
+      ${isToday ? 'Log Today' : isPast ? 'Log / Edit This Day' : 'View Session'}
+    </button>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function goToDay(date) {
+  closeModal();
+  switchTab('today');
+  renderToday(date);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ── RECOVERY TAB ──
+function renderRecovery() {
+  const today = getToday();
+  const existing = LS.getRecovery(today) || {};
+  const score = existing.morpheusScore || '';
+
+  let tierColor = 'var(--text-muted)';
+  let tierLabel = '–';
+  let guidance = 'Log your Morpheus score to get today\'s training guidance.';
+
+  if (score) {
+    if (score >= 85) {
+      tierColor = 'var(--accent-recovery)';
+      tierLabel = 'Green — Execute as planned';
+      guidance = 'Recovery is strong. Execute today\'s prescribed session as written.';
+    } else if (score >= 70) {
+      tierColor = 'var(--warn)';
+      tierLabel = 'Yellow — Reduce intensity';
+      guidance = 'Reduce interval count by 1–2 on ride days, or back off working weights ~10% on strength days. Keep quality high.';
+    } else {
+      tierColor = 'var(--danger)';
+      tierLabel = 'Red — Z2 or rest';
+      guidance = 'Replace any intensity work with Z2 riding or rest. Do not force today\'s prescribed effort.';
+    }
+  }
+
+  const el = document.getElementById('recoveryContent');
+  el.innerHTML = `
+    <div class="morpheus-display">
+      <div class="morpheus-score" style="color:${score ? tierColor : 'var(--text-muted)'};">${score || '–'}</div>
+      <div class="morpheus-tier" style="color:${tierColor};">${tierLabel}</div>
+      <div class="morpheus-guidance">${guidance}</div>
+    </div>
+
+    <div class="section-label">Log Recovery · ${formatDisplay(today)}</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Morpheus Score %</label>
+        <input type="number" id="rec_score" placeholder="85" value="${existing.morpheusScore || ''}" min="0" max="100"
+          oninput="updateMorpheusPreview(this.value)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Elbow Status (0–5)</label>
+        <div class="elbow-rating" id="rec_elbow_btns">
+          ${[0,1,2,3,4,5].map(n => `<button class="elbow-btn ${existing.elbowRating == n ? 'selected' : ''}" onclick="selectRecElbow(${n})">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="rec_notes" placeholder="Sleep quality, stress, how you feel...">${existing.notes || ''}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveRecovery('${today}')">Save</button>
+    </div>
+  `;
+
+  // Store selected elbow value
+  el._elbowVal = existing.elbowRating !== undefined ? existing.elbowRating : null;
+}
+
+let recElbowVal = null;
+function selectRecElbow(n) {
+  recElbowVal = n;
+  document.querySelectorAll('#rec_elbow_btns .elbow-btn').forEach((b, i) => {
+    b.classList.toggle('selected', i === n);
+  });
+}
+
+function updateMorpheusPreview(val) {
+  const score = Number(val);
+  let color = 'var(--text-muted)', tier = '–';
+  if (score >= 85) { color = 'var(--accent-recovery)'; tier = 'Green — Execute as planned'; }
+  else if (score >= 70) { color = 'var(--warn)'; tier = 'Yellow — Reduce intensity'; }
+  else if (score > 0) { color = 'var(--danger)'; tier = 'Red — Z2 or rest'; }
+  document.querySelector('.morpheus-score').style.color = color;
+  document.querySelector('.morpheus-score').textContent = val || '–';
+  document.querySelector('.morpheus-tier').style.color = color;
+  document.querySelector('.morpheus-tier').textContent = tier;
+}
+
+function saveRecovery(date) {
+  const score = document.getElementById('rec_score')?.value;
+  const notes = document.getElementById('rec_notes')?.value;
+  const existing = LS.getRecovery(date) || {};
+  const entry = {
+    date,
+    morpheusScore: Number(score) || '',
+    elbowRating: recElbowVal !== null ? recElbowVal : (existing.elbowRating !== undefined ? existing.elbowRating : ''),
+    sleepQuality: '',
+    notes: notes || ''
+  };
+  LS.saveEntry('recovery', entry);
+  syncToSheet('recovery', entry);
+  showToast('Recovery logged ✓');
+  renderRecovery();
+}
+
+// ── STATS TAB ──
+function renderStats() {
+  const rides = LS.getLog('rides');
+  const strength = LS.getLog('strength');
+  const recovery = LS.getLog('recovery');
+
+  // Calculate stats
+  const rideCount = rides.length;
+  const avgHR = rideCount ? Math.round(rides.reduce((a, r) => a + (Number(r.ahr) || 0), 0) / rideCount) : 0;
+  const strDates = [...new Set(strength.map(r => r.date))].length;
+  const recScores = recovery.filter(r => r.morpheusScore).map(r => Number(r.morpheusScore));
+  const avgMorpheus = recScores.length ? Math.round(recScores.reduce((a, b) => a + b, 0) / recScores.length) : 0;
+
+  const el = document.getElementById('statsContent');
+
+  let html = `
+    <div class="section-label">Phase 2 Summary</div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-val">${rideCount}</div>
+        <div class="stat-lbl">Rides Logged</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${strDates}</div>
+        <div class="stat-lbl">Strength Days</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:${avgHR > 0 ? 'var(--accent-ride)' : 'var(--text-muted)'};">${avgHR || '–'}</div>
+        <div class="stat-lbl">Avg HR</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:${avgMorpheus >= 85 ? 'var(--accent-recovery)' : avgMorpheus >= 70 ? 'var(--warn)' : avgMorpheus > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${avgMorpheus || '–'}</div>
+        <div class="stat-lbl">Avg Morpheus</div>
+      </div>
+    </div>
+  `;
+
+  // Recent sessions
+  const allSessions = [
+    ...rides.map(r => ({ date: r.date, type: r.rideType, label: getRideLabelFromType(r.rideType), sub: `${r.duration} min · AHR ${r.ahr} · RPE ${r.rpe || '–'}`, color: 'var(--accent-ride)' })),
+    ...[...new Set(strength.map(r => r.date + '|' + r.sessionType))].map(k => {
+      const [date, type] = k.split('|');
+      return { date, type, label: type === 'strength-a' ? 'Session A' : 'Session B', sub: 'Strength', color: 'var(--accent-strength)' };
+    })
+  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
+
+  if (allSessions.length > 0) {
+    html += `<div class="section-label">Recent Sessions</div>
+    <div class="card" style="padding:0;">`;
+    allSessions.forEach(s => {
+      html += `<div class="history-row">
+        <div class="history-dot" style="background:${s.color};"></div>
+        <div class="history-info">
+          <div class="history-title">${s.label}</div>
+          <div class="history-sub">${s.sub}</div>
+        </div>
+        <div class="history-date">${formatShort(s.date)}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="empty-state">No sessions logged yet.<br>Sessions will appear here as you log them.</div>`;
+  }
+
+  // Elbow trend
+  const elbowData = recovery.filter(r => r.elbowRating !== '' && r.elbowRating !== undefined && r.elbowRating !== null).slice(-10);
+  if (elbowData.length > 0) {
+    html += `<div class="section-label">Elbow Rating (recent)</div>
+    <div class="card" style="padding:0;">`;
+    elbowData.reverse().forEach(r => {
+      const rating = Number(r.elbowRating);
+      const color = rating === 0 ? 'var(--accent-recovery)' : rating <= 2 ? 'var(--warn)' : 'var(--danger)';
+      html += `<div class="history-row">
+        <div class="history-dot" style="background:${color};"></div>
+        <div class="history-info">
+          <div class="history-title">Elbow: ${rating}/5</div>
+          <div class="history-sub">${r.notes || ''}</div>
+        </div>
+        <div class="history-date">${formatShort(r.date)}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function getRideLabelFromType(t) {
+  if (t === 'ride-a') return 'Ride A — Threshold';
+  if (t === 'ride-b') return 'Ride B — Tempo';
+  if (t === 'ride-c') return 'Ride C — Long';
+  if (t === 'bridge-ride') return 'Bridge Ride';
+  return t;
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
