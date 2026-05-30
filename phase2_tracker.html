@@ -747,6 +747,7 @@ function buildSchedule() {
 
   // Bridge week: May 31 – Jun 7 (concert run)
   const bridgeWeek = [
+    { date: '2026-05-30', type: 'bridge-ride', label: 'Short Z2 Ride', notes: 'Phase 1/2 bridge ride. 40–45 min, lower Z2, HR 125–133.' },
     { date: '2026-05-31', type: 'yoga', label: 'Yoga / Mobility', notes: 'Concert day. Morning yoga. 30–45 min.' },
     { date: '2026-06-01', type: 'bridge-ride', label: 'Short Z2 Ride', notes: 'Concert day. 35–45 min if Morpheus ≥70. Lower Z2 only, HR 125–133.' },
     { date: '2026-06-02', type: 'yoga', label: 'Yoga / Mobility', notes: 'Concert day. Morning yoga. 30–45 min.' },
@@ -825,6 +826,18 @@ const LS = {
   getStrengthSession(date) {
     const str = this.getLog('strength');
     return str.filter(r => r.date === date);
+  },
+  getActivities(date) {
+    const acts = this.getLog('activities');
+    return date ? acts.filter(r => r.date === date) : acts;
+  },
+  saveActivity(entry) {
+    const d = this.get();
+    if (!d.activities) d.activities = [];
+    const arr = d.activities;
+    const idx = arr.findIndex(r => r.activityId === entry.activityId);
+    if (idx >= 0) arr[idx] = entry; else arr.push(entry);
+    this.set(d);
   }
 };
 
@@ -837,7 +850,7 @@ async function syncToSheet(tab, entry) {
 }
 async function loadFromSheet() {
   try {
-    const tabs = ['Rides', 'Strength', 'Recovery'];
+    const tabs = ['Rides', 'Strength', 'Recovery', 'Activities'];
     for (const tab of tabs) {
       const url = `${API_URL}?action=load&tab=${tab}`;
       const res = await fetch(url);
@@ -856,6 +869,9 @@ async function loadFromSheet() {
           } else if (tab === 'Rides') {
             const idx = d[key].findIndex(r => r.date === entry.date && r.rideType === entry.rideType);
             if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
+          } else if (tab === 'Activities') {
+            const idx = d[key].findIndex(r => r.activityId === entry.activityId);
+            if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
           } else {
             const idx = d[key].findIndex(r => r.date === entry.date);
             if (idx >= 0) d[key][idx] = entry; else d[key].push(entry);
@@ -871,6 +887,7 @@ function sheetRowToEntry(tab, row) {
   if (tab === 'Rides') return { date: row.Date, rideType: row.RideType, duration: row.Duration, ahr: row.AHR, mhr: row.MHR, rpe: row.RPE, morpheusZone: row.MorpheusZone, morpheusScore: row.MorpheusScore, notes: row.Notes };
   if (tab === 'Strength') return { date: row.Date, sessionType: row.SessionType, exercise: row.Exercise, set: Number(row.Set), reps: row.Reps, weight: row.Weight, notes: row.Notes };
   if (tab === 'Recovery') return { date: row.Date, morpheusScore: row.MorpheusScore, elbowRating: row.ElbowRating, sleepQuality: row.SleepQuality, notes: row.Notes };
+  if (tab === 'Activities') return { date: row.Date, activityId: row.ActivityId, type: row.Type, duration: row.Duration, effort: row.Effort, ahr: row.AHR, mhr: row.MHR, notes: row.Notes };
   return row;
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -982,6 +999,26 @@ function renderToday(date) {
     html += `<div style="padding: 8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:8px;">Viewing: ${formatDisplay(d)}</div></div>`;
   }
 
+  // Show existing activities for this day
+  const existingActivities = LS.getActivities(d);
+  if (existingActivities.length > 0) {
+    html += `<div class="section-label">Additional Activities</div>`;
+    existingActivities.forEach(act => {
+      html += `<div class="card" style="padding:12px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:500;">${act.type}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:2px;">
+              ${act.duration ? act.duration + ' min' : ''}${act.effort ? ' · ' + act.effort : ''}${act.ahr ? ' · AHR ' + act.ahr : ''}${act.mhr ? ' · MHR ' + act.mhr : ''}
+            </div>
+            ${act.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${act.notes}</div>` : ''}
+          </div>
+          <button onclick="deleteActivity('${act.activityId}')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:4px;">×</button>
+        </div>
+      </div>`;
+    });
+  }
+
   // Show log form or logged summary
   if (isRideType(session.type)) {
     const logged = existingRide.find(r => r.rideType === getRideKey(session.type));
@@ -995,6 +1032,14 @@ function renderToday(date) {
   } else {
     html += `<div class="card"><div style="color:var(--text-muted);font-size:14px;text-align:center;padding:8px 0;">No logging required for this session type.</div></div>`;
   }
+
+  // Always show additional activity button
+  html += `
+    <div class="section-label">Additional Activity</div>
+    <div class="card">
+      <button class="btn btn-secondary" onclick="showActivityForm('${d}')">+ Log Additional Activity</button>
+    </div>
+  `;
 
   el.innerHTML = html;
 }
@@ -1742,6 +1787,94 @@ function getRideLabelFromType(t) {
   if (t === 'ride-c') return 'Ride C — Long';
   if (t === 'bridge-ride') return 'Bridge Ride';
   return t;
+}
+
+// ── ACTIVITY LOGGING ──
+function showActivityForm(date) {
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title">Log Activity</div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:16px;">${formatDisplay(date)}</div>
+    <div class="form-group">
+      <label class="form-label">Activity Type</label>
+      <select id="act_type">
+        <option value="Yoga">Yoga</option>
+        <option value="Walk">Walk</option>
+        <option value="Yard Work / Physical Labor">Yard Work / Physical Labor</option>
+        <option value="Outdoor Run">Outdoor Run</option>
+        <option value="Stretching / Mobility">Stretching / Mobility</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <div class="form-group">
+        <label class="form-label">Duration (min)</label>
+        <input type="number" id="act_duration" placeholder="30">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Effort</label>
+        <select id="act_effort">
+          <option value="Light">Light</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="form-group">
+        <label class="form-label">Avg HR (optional)</label>
+        <input type="number" id="act_ahr" placeholder="–">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max HR (optional)</label>
+        <input type="number" id="act_mhr" placeholder="–">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea id="act_notes" placeholder="What did you do?"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveActivity('${date}')">Save Activity</button>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function saveActivity(date) {
+  const type = document.getElementById('act_type').value;
+  const duration = document.getElementById('act_duration').value;
+  const effort = document.getElementById('act_effort').value;
+  const ahr = document.getElementById('act_ahr').value;
+  const mhr = document.getElementById('act_mhr').value;
+  const notes = document.getElementById('act_notes').value;
+
+  const activityId = date + '-' + Date.now();
+  const entry = {
+    date,
+    activityId,
+    type,
+    duration: Number(duration) || '',
+    effort,
+    ahr: Number(ahr) || '',
+    mhr: Number(mhr) || '',
+    notes: notes || ''
+  };
+
+  LS.saveActivity(entry);
+  syncToSheet('activities', entry);
+  closeModal();
+  showToast('Activity logged ✓');
+  renderToday(date);
+}
+
+function deleteActivity(activityId) {
+  const d = LS.get();
+  if (d.activities) {
+    d.activities = d.activities.filter(r => r.activityId !== activityId);
+    LS.set(d);
+  }
+  showToast('Activity removed');
+  renderToday(getToday());
 }
 
 // ── TOAST ──
